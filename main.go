@@ -1,15 +1,15 @@
 package main
 
 import (
-	"flag"
+	"io"
 	"os"
 	"net/http"
+	"flag"
+	"bytes"
 	"bufio"
+	"strings"
 	"log"
 	"fmt"
-	"strings"
-	"io"
-	"bytes"
 )
 
 func readFlag() (int, bool, string) {
@@ -37,13 +37,14 @@ func getPrintText(reader io.Reader, n int) ([]string, error) {
 	return text, nil
 }
 
-func getRes(path string, remote bool) (reader io.Reader, err error) {
+func getReader(path string, remote bool) (reader io.Reader, err error) {
 	if remote {
 		res, err := http.Get(path)
 		if err != nil {
 			reader = nil
 		}
 		// *Requestをio.Readerに変換
+		// io.Readerならなんでもよかったが、これが適切だと考えた
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(res.Body)
 		reader = buf
@@ -61,7 +62,7 @@ func main() {
 	if path == "" {
 		log.Fatalf("ファイルのパスが入力されていません")
 	}
-	reader, err := getRes(path, remote)
+	reader, err := getReader(path, remote)
 
 
 	fmt.Printf("\n==> %s <==\n", path)
