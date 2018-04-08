@@ -3,23 +3,27 @@ package main
 import (
 	"flag"
 	"os"
+	"net/http"
 	"bufio"
 	"log"
 	"fmt"
 	"strings"
+	"io"
+	"bytes"
 )
 
-func readFlag() (int, string) {
+func readFlag() (int, bool, string) {
 	nFlag := flag.Int("n", 10, "number flag")
+	remoteFlag := flag.Bool("remote", false, "remote flag")
 	flag.Parse()
 	path := flag.Arg(0)
-	return *nFlag, path
+	return *nFlag, *remoteFlag, path
 }
 
-func getPrintText(file *os.File, n int) ([]string, error) {
+func getPrintText(reader io.Reader, n int) ([]string, error) {
 	var text []string
 	var lineCount int
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		text = append(text, scanner.Text())
 		lineCount += 1
@@ -33,19 +37,35 @@ func getPrintText(file *os.File, n int) ([]string, error) {
 	return text, nil
 }
 
+func getRes(path string, remote bool) (reader io.Reader, err error) {
+	if remote {
+		res, err := http.Get(path)
+		if err != nil {
+			reader = nil
+		}
+		// *Requestをio.Readerに変換
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(res.Body)
+		reader = buf
+	} else {
+		reader, err = os.Open(path)
+		if err != nil {
+			reader = nil
+		}
+	}
+	return
+}
+
 func main() {
-	n, path := readFlag()
+	n, remote, path := readFlag()
 	if path == "" {
 		log.Fatalf("ファイルのパスが入力されていません")
 	}
-	file, err := os.Open(path)
-	if err != nil {
-		log.Fatalf("ファイルの読み込みに失敗しました エラー: %v", err)
-	}
-	defer file.Close()
+	reader, err := getRes(path, remote)
+
 
 	fmt.Printf("\n==> %s <==\n", path)
-	text, err := getPrintText(file, n)
+	text, err := getPrintText(reader, n)
 	if err != nil {
 		log.Fatalf("テキストの読み込みでエラーが発生しました エラー: %v", err)
 	}
