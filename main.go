@@ -6,32 +6,31 @@ import (
 	"bufio"
 	"log"
 	"fmt"
+	"strings"
 )
 
-func readFlag() (n int, path string) {
-	// パースしてからでないと使えない関数、そうでない関数がflagに存在する可能性がある
-	// os.Argsの方がいいかも
-	n = *flag.Int("n", 10, "number flag")
+func readFlag() (int, string) {
+	nFlag := flag.Int("n", 10, "number flag")
 	flag.Parse()
-	path = flag.Arg(0)
-	return
+	path := flag.Arg(0)
+	return *nFlag, path
 }
 
-func printFile(path string, file *os.File, n int) {
-	fmt.Printf("\n==> %s <==\n", path)
-	lineCount := 0
+func getPrintText(file *os.File, n int) ([]string, error) {
+	var text []string
+	var lineCount int
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		fmt.Println(scanner.Text())
+		text = append(text, scanner.Text())
 		lineCount += 1
 		if lineCount >= n {
 			break
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		panic(err)
+		return nil, err
 	}
-	fmt.Printf("==> %s end <==\n\n", path)
+	return text, nil
 }
 
 func main() {
@@ -44,5 +43,12 @@ func main() {
 		log.Fatalf("ファイルの読み込みに失敗しました エラー: %v", err)
 	}
 	defer file.Close()
-	printFile(path, file, n)
+
+	fmt.Printf("\n==> %s <==\n", path)
+	text, err := getPrintText(file, n)
+	if err != nil {
+		log.Fatalf("テキストの読み込みでエラーが発生しました エラー: %v", err)
+	}
+	fmt.Print(strings.Join(text, "\n"))
+	fmt.Printf("\n==> %s end <==\n\n", path)
 }
