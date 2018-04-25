@@ -1,75 +1,48 @@
 package main
 
 import (
-	"io"
 	"os"
-	"net/http"
 	"flag"
-	"bytes"
-	"bufio"
-	"strings"
-	"log"
 	"fmt"
+
+	"github.com/srttk/myhead/print"
 )
 
-func readFlag() (int, bool, string) {
-	nFlag := flag.Int("n", 10, "number flag")
-	remoteFlag := flag.Bool("remote", false, "remote flag")
-	flag.Parse()
-	path := flag.Arg(0)
-	return *nFlag, *remoteFlag, path
-}
+var (
+	n        int
+	isRemote bool
+	path     string
 
-func getPrintText(reader io.Reader, n int) ([]string, error) {
-	var text []string
-	var lineCount int
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		text = append(text, scanner.Text())
-		lineCount += 1
-		if lineCount >= n {
-			break
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-	return text, nil
-}
+	printer  print.Printer
+	err      error
+)
 
-func getReader(path string, remote bool) (reader io.Reader, err error) {
-	if remote {
-		res, err := http.Get(path)
-		if err != nil {
-			reader = nil
-		}
-		// *Requestをio.Readerに変換
-		// io.Readerならなんでもよかったが、これが適切だと考えた
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(res.Body)
-		reader = buf
-	} else {
-		reader, err = os.Open(path)
-		if err != nil {
-			reader = nil
-		}
-	}
-	return
+func init() {
+	flag.IntVar(&n, "n", 10, "|optional| number of rows to read. default value 10")
+	flag.BoolVar(&isRemote, "remote", false, "|optional| whether to read external files using http. If true it will be treated as http resource")
+	flag.BoolVar(&isRemote, "r", false, "|optional| 'remote' shorthand")
 }
 
 func main() {
-	n, remote, path := readFlag()
-	if path == "" {
-		log.Fatalf("ファイルのパスが入力されていません")
+	flag.Parse()
+	if len(flag.Args()) == 0 {
+		fmt.Print("required 'path' params\nPlease start with -h and check the required items")
+		os.Exit(2)
 	}
-	reader, err := getReader(path, remote)
+	path = flag.Arg(0)
 
-
-	fmt.Printf("\n==> %s <==\n", path)
-	text, err := getPrintText(reader, n)
+	if isRemote {
+		printer, err = print.NewResponse(path)
+	} else {
+		printer, err = print.NewFile(path)
+	}
 	if err != nil {
-		log.Fatalf("テキストの読み込みでエラーが発生しました エラー: %v", err)
+		fmt.Print(err)
+		os.Exit(2)
 	}
-	fmt.Print(strings.Join(text, "\n"))
-	fmt.Printf("\n==> %s end <==\n\n", path)
+	err = printer.Print(n, path)
+	if err != nil {
+		fmt.Print(err)
+		os.Exit(2)
+	}
 }
