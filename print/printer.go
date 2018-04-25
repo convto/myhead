@@ -10,7 +10,7 @@ type Printer interface {
 	Print(int, string) error
 }
 
-func getPrintText(reader io.Reader, n int, path string) ([]string, error) {
+func GetPrintText(reader io.Reader, n int, path string) ([]string, error) {
 	var text []string
 	var lineCount int
 	text = append(text, "\n==>"+path+"<==")

@@ -2,54 +2,56 @@ package main
 
 import (
 	"testing"
-	"strings"
-	"io"
 )
 
-func TestGetReader(t *testing.T) {
-	var err error
+var printerBases = []struct {
+	isRemote bool
+	path string
+}{
+	{true, "https://s3-ap-northeast-1.amazonaws.com/myhead/test.txt"},
+	{false, "./testdata/test.txt"},
+	{false, "./testdata/test.png"},
+	{false, "./testdata/test.html"},
+}
 
-	// local
-	_, err = getReader("./test.txt", false)
-	if err != nil {
-		t.Errorf("ローカルファイルの読み込みに失敗しました エラー: %v", err)
-	}
+var failPrinterBases = []struct {
+	isRemote bool
+	path string
+}{
+	{true, "./testdata/test.txt"},
+	{false, "https://s3-ap-northeast-1.amazonaws.com/myhead/test.txt"},
+	{false, "not file dir"},
+	{false, "./noting.file.ext.example"},
+}
 
-	// remote
-	_, err = getReader("https://s3-ap-northeast-1.amazonaws.com/myhead/test.txt", true)
+func TestArgExists(t *testing.T) {
+	err := argsExists(1)
 	if err != nil {
-		t.Errorf("リモートファイルの読み込みに失敗しました エラー: %v", err)
+		t.Error(err)
 	}
 }
 
-func TestGetPrintText(t *testing.T) {
-	var (
-		reader io.Reader
-		text   []string
-		str    string
-		err    error
-	)
-	// local
-	reader, _ = getReader("./test.txt", false)
-	text, err = getPrintText(reader, 2)
-	if err != nil {
-		t.Errorf("テキストの読み込みでエラーが発生しました エラー: %v", err)
+func TestArgExists2(t *testing.T) {
+	err := argsExists(0)
+	if err == nil {
+		t.Error("prease catch err")
 	}
-	// getPrintTextの結果を評価するために[]stringをstringに変換
-	str = strings.Join(text, "\n")
-	if str != "Lorem ipsum dolor sit amet,\nconsectetur adipiscing elit," {
-		t.Errorf("期待される出力と差があります")
-	}
+}
 
-	// remote
-	reader, _ = getReader("https://s3-ap-northeast-1.amazonaws.com/myhead/test.txt", true)
-	text, err = getPrintText(reader, 2)
-	if err != nil {
-		t.Errorf("テキストの読み込みでエラーが発生しました エラー: %v", err)
+func TestGetPrinter(t *testing.T) {
+	for _, printerBase := range printerBases {
+		_, err := getPrinter(printerBase.isRemote, printerBase.path)
+		if err != nil {
+			t.Error(err)
+		}
 	}
-	// getPrintTextの結果を評価するために[]stringをstringに変換
-	str = strings.Join(text, "\n")
-	if str != "Lorem ipsum dolor sit amet,\nconsectetur adipiscing elit," {
-		t.Errorf("期待される出力と差があります")
+}
+
+func TestGetPrinter2(t *testing.T) {
+	for _, failPrinterBase := range failPrinterBases {
+		_, err := getPrinter(failPrinterBase.isRemote, failPrinterBase.path)
+		if err == nil {
+			t.Error("prease catch err")
+		}
 	}
 }

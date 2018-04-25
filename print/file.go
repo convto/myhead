@@ -34,7 +34,7 @@ func NewFile(path string) (File, error) {
 
 func (f File) Print(n int, path string) error {
 	fileName := filepath.Base(path)
-	strSlice, err := getPrintText(f, n, fileName)
+	strSlice, err := GetPrintText(f, n, fileName)
 	if err != nil {
 		return err
 	}

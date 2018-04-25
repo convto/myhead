@@ -26,7 +26,7 @@ func NewResponse(url string) (Response, error) {
 }
 
 func (r Response) Print(n int, path string) error {
-	strSlice, err := getPrintText(r.Reader, n, path)
+	strSlice, err := GetPrintText(r.Reader, n, path)
 	if err != nil {
 		return err
 	}
